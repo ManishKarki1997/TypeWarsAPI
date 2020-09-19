@@ -3,12 +3,12 @@ const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const socket = require("socket.io");
 const cors = require("cors");
 require("dotenv").config();
-const passport = require("passport");
-const JWTAuthenticationStrategy = require("./passport/authenticateJWT");
 
 const AuthController = require("./controllers/AuthController");
+const SocketHandler = require("./sockets/socket");
 
 app.use(
   bodyParser.urlencoded({
@@ -20,17 +20,20 @@ app.use(cors());
 
 app.use("/api/auth", AuthController);
 
-passport.use(JWTAuthenticationStrategy);
-
 const db = require("./models/index");
 
 const PORT = process.env.PORT || 4000;
 
-app.use(passport.initialize());
+// force: true
+// db.sequelize.sync({}).then(() => {
+//   const server = app.listen(PORT, () => {
+//     console.log(`Server running on port ${PORT}`);
+//   });
+//   const io = socket(server);
+// });
 
-// force : true
-db.sequelize.sync({}).then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  const io = socket(server);
+  SocketHandler(io);
 });

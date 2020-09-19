@@ -3,13 +3,15 @@ const Router = express.Router();
 const bcrypt = require("bcryptjs");
 const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
-const passport = require("passport");
+const { v4: uuidv4 } = require("uuid");
 
 const { User } = require("../models");
 
+const verifyToken = require("../middlewares/verifyToken");
+
 Router.post("/", async (req, res) => {
   try {
-    const { email, username, password, avatar } = req.body;
+    const { name, email, username, password, avatar } = req.body;
     const existingUser = await User.findOne({
       where: {
         [Op.or]: [{ email }, { username }],
@@ -27,17 +29,27 @@ Router.post("/", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
+      id: uuidv4(),
+      name,
       email,
       username,
       avatar,
       password: hashedPassword,
     });
 
+    // const token = await jwt.sign({ email, username }, process.env.JWT_SECRET_KEY);
+
+    // const userToken = await AuthToken.create({
+    //   token,
+    //   UserId: user.id,
+    // });
+
     return res.status(200).send({
       error: false,
       message: "Signed up successfully.",
       payload: {
         user,
+        // userToken,
       },
     });
   } catch (error) {
@@ -81,7 +93,12 @@ Router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ username, id: user.id }, process.env.JWT_SECRET_KEY);
+    const token = jwt.sign({ username, email: user.email, id: user.id }, process.env.JWT_SECRET_KEY);
+    console.log("new created token is ", token);
+    // await AuthToken.create({
+    //   token,
+    //   UserId: user.id,
+    // });
 
     return res.send({
       error: false,
@@ -100,7 +117,7 @@ Router.post("/login", async (req, res) => {
   }
 });
 
-Router.get("/", passport.authenticate("jwt", { session: false }), async (req, res) => {
+Router.get("/", async (req, res) => {
   try {
     const users = await User.findAll();
     return res.status(200).send({
@@ -118,4 +135,23 @@ Router.get("/", passport.authenticate("jwt", { session: false }), async (req, re
     });
   }
 });
+
+Router.get("/getUser", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { email: req.user.email } });
+    return res.send({
+      error: false,
+      payload: {
+        user,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.send({
+      error: true,
+      message: "Something went wrong",
+    });
+  }
+});
+
 module.exports = Router;

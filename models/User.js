@@ -1,5 +1,3 @@
-const { v4: uuidv4 } = require("uuid");
-
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "User",
@@ -7,7 +5,11 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         primaryKey: true,
         type: DataTypes.UUID,
-        defaultValue: uuidv4(),
+        allowNull: false,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
       email: {
         type: DataTypes.STRING,
@@ -32,8 +34,7 @@ module.exports = (sequelize, DataTypes) => {
     {}
   );
   User.associate = function (models) {
-    // associations can be defined here
-    User.hasMany(models.AuthToken);
+    // User.hasMany(models.AuthToken);
   };
 
   return User;
