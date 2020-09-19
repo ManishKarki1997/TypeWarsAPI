@@ -10,9 +10,10 @@ const { User } = require("../models");
 Router.post("/", async (req, res) => {
   try {
     const { email, username, password, avatar } = req.body;
-
     const existingUser = await User.findOne({
-      [Op.or]: [{ email }, { username }],
+      where: {
+        [Op.or]: [{ email }, { username }],
+      },
     });
 
     if (existingUser) {
@@ -34,7 +35,7 @@ Router.post("/", async (req, res) => {
 
     return res.status(200).send({
       error: false,
-      message: "User created successfully",
+      message: "Signed up successfully.",
       payload: {
         user,
       },
