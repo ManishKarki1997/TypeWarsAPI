@@ -1,22 +1,17 @@
 const express = require("express");
 const Router = express.Router();
 const bcrypt = require("bcryptjs");
-const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
 
-const { User } = require("../models");
+const User = require('../models/User');
 
 const verifyToken = require("../middlewares/verifyToken");
 
 Router.post("/", async (req, res) => {
   try {
     const { name, email, username, password, avatar } = req.body;
-    const existingUser = await User.findOne({
-      where: {
-        [Op.or]: [{ email }, { username }],
-      },
-    });
+
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] })
 
     if (existingUser) {
       return res.status(409).send({
@@ -28,27 +23,21 @@ Router.post("/", async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await User.create({
-      id: uuidv4(),
+    const user = new User({
       name,
       email,
-      username,
       avatar,
-      password: hashedPassword,
-    });
+      username,
+      password: hashedPassword
+    })
 
-    // const token = await jwt.sign({ email, username }, process.env.JWT_SECRET_KEY);
-
-    // const userToken = await AuthToken.create({
-    //   token,
-    //   UserId: user.id,
-    // });
+    const savedUser = await user.save();
 
     return res.status(200).send({
       error: false,
       message: "Signed up successfully.",
       payload: {
-        user,
+        user: savedUser,
         // userToken,
       },
     });
@@ -72,11 +61,7 @@ Router.post("/login", async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
-      where: {
-        username,
-      },
-    });
+    const user = await User.findOne({ username })
 
     if (!user) {
       return res.status(404).send({
@@ -94,11 +79,7 @@ Router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign({ username, email: user.email, id: user.id }, process.env.JWT_SECRET_KEY);
-    console.log("new created token is ", token);
-    // await AuthToken.create({
-    //   token,
-    //   UserId: user.id,
-    // });
+
 
     return res.send({
       error: false,
@@ -119,7 +100,7 @@ Router.post("/login", async (req, res) => {
 
 Router.get("/", async (req, res) => {
   try {
-    const users = await User.findAll();
+    const users = await User.find({});
     return res.status(200).send({
       error: false,
       message: "Users successfully fetched",
@@ -138,7 +119,7 @@ Router.get("/", async (req, res) => {
 
 Router.get("/getUser", verifyToken, async (req, res) => {
   try {
-    const user = await User.findOne({ where: { email: req.user.email } });
+    const user = await User.findOne({ email });
     return res.send({
       error: false,
       payload: {

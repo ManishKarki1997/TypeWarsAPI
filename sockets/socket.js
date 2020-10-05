@@ -29,7 +29,7 @@ const sockets = (io) => {
       io.to(data.challengedUser.socketId).emit("SOMEONE_CHALLEGED_YOU", data);
     });
 
-    socket.on("CHALLENGE_FOR_A_REMATCH",data=>{
+    socket.on("CHALLENGE_FOR_A_REMATCH", data => {
       io.to(data.challengedUser.socketId).emit("SOMEONE_ASKED_FOR_A_REMATCH", data);
     });
 
@@ -55,7 +55,7 @@ const sockets = (io) => {
         ...data,
         roomId,
         readyPlayers: [],
-        finishedTypingPlayers:{}
+        finishedTypingPlayers: {}
       };
       io.to(data.challengedUser.socketId).emit("GAME_IS_STARTING", { ...data, roomId });
       io.to(data.challenger.socketId).emit("GAME_IS_STARTING", { ...data, roomId });
@@ -76,26 +76,29 @@ const sockets = (io) => {
       });
     });
 
-    socket.on("MY_TYPING_DATA", (data)=>{
-      io.to(data.intendedTo.socketId).emit("OPPONENT_TYPING_DATA",data)
+    socket.on("MY_TYPING_DATA", (data) => {
+      io.to(data.intendedTo.socketId).emit("OPPONENT_TYPING_DATA", data)
     })
 
-    socket.on("TYPING_FINISHED", (data)=>{
+    socket.on("TYPING_FINISHED", (data) => {
       liveRooms[data.roomId].finishedTypingPlayers[data.user.email] = data.user
-      
-      if(Object.keys(liveRooms[data.roomId].finishedTypingPlayers).length == 2){
+
+      if (Object.keys(liveRooms[data.roomId].finishedTypingPlayers).length == 2) {
+
+        console.log(data);
+
         // need to determine the winner
-        io.to(data.roomId).emit("MATCH_FINISHED",{
+        io.to(data.roomId).emit("MATCH_FINISHED", {
           winner: data.user,
-          gameDetails:liveRooms[data.roomId].finishedTypingPlayers
+          gameDetails: liveRooms[data.roomId].finishedTypingPlayers
         })
       }
     })
 
     socket.on("disconnect", () => {
       const user = onlineUsers[socket.email]
-      
-      if(user && user.roomId!==undefined){
+
+      if (user && user.roomId !== undefined) {
         io.to(user.roomId).emit("OPPONENT_LEFT_THE_GAME", user);
       }
 
