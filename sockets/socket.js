@@ -2,6 +2,9 @@ const { v4: uuidv4 } = require("uuid");
 const onlineUsers = {};
 const liveRooms = {};
 const countdownTimer = 3;
+const fetch = require('node-fetch');
+
+const textAPI = `http://metaphorpsum.com/paragraphs/3/6`
 
 const sockets = (io) => {
   io.on("connection", (socket) => {
@@ -61,7 +64,7 @@ const sockets = (io) => {
       io.to(data.challenger.socketId).emit("GAME_IS_STARTING", { ...data, roomId });
     });
 
-    socket.on("PLAYER_READY", (roomId) => {
+    socket.on("PLAYER_READY", async (roomId) => {
       if (liveRooms[roomId] === undefined) return;
       if (liveRooms[roomId].readyPlayers.indexOf(socket.id) == -1) {
         liveRooms[roomId].readyPlayers.push(socket.id);
@@ -71,8 +74,12 @@ const sockets = (io) => {
           countdownTimer,
         });
       }
+      const response = await fetch(textAPI);
+      const textToType = await response.text();
+
       io.to(roomId).emit("GAME_START_COUNTDOWN", {
         countdownTimer,
+        textToType
       });
     });
 
@@ -85,11 +92,28 @@ const sockets = (io) => {
 
       if (Object.keys(liveRooms[data.roomId].finishedTypingPlayers).length == 2) {
 
-        console.log(data);
+        const gameData = liveRooms[data.roomId].finishedTypingPlayers
+        const playersArr = [];
+        Object.keys(gameData).forEach((key) => playersArr.push(gameData[key]));
+        const player1NetWPM =
+          Math.floor(playersArr[0].userTypedLength / 5) -
+          Math.floor(playersArr[0].userTypedErrors);
 
-        // need to determine the winner
+        const player2NetWPM =
+          Math.floor(playersArr[1].userTypedLength / 5) -
+          Math.floor(playersArr[1].userTypedErrors);
+
+
+        let winner;
+
+        if (player1NetWPM == player2NetWPM) {
+          winner = null;
+        } else {
+          winner = player1NetWPM > player2NetWPM ? playersArr[0] : playersArr[1]
+        }
+
         io.to(data.roomId).emit("MATCH_FINISHED", {
-          winner: data.user,
+          winner: winner,
           gameDetails: liveRooms[data.roomId].finishedTypingPlayers
         })
       }
