@@ -1,9 +1,7 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
 const mongoose = require('mongoose');
-const jwt = require("jsonwebtoken");
 const socket = require("socket.io");
 const cors = require("cors");
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/type_wars";
@@ -21,6 +19,9 @@ app.use(
 app.use(bodyParser.json());
 app.use(cors());
 
+app.get("/", (req, res) => {
+  return res.send("Welcome to the TypeWars API");
+})
 app.use("/api/auth", AuthController);
 
 
@@ -43,9 +44,3 @@ const server = app.listen(PORT, () => {
 })
 const io = socket(server)
 SocketHandler(io)
-
-// const server = app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-//   const io = socket(server);
-//   SocketHandler(io);
-// });
