@@ -3,7 +3,7 @@ const Router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const User = require('../models/User');
+const User = require("../models/User");
 
 const verifyToken = require("../middlewares/verifyToken");
 
@@ -11,7 +11,7 @@ Router.post("/", async (req, res) => {
   try {
     const { name, email, username, password, avatar } = req.body;
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] })
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
 
     if (existingUser) {
       return res.status(409).send({
@@ -26,10 +26,10 @@ Router.post("/", async (req, res) => {
     const user = new User({
       name,
       email,
-      avatar,
+      avatar: avatar || `https://avatars.dicebear.com/api/bottts/${email}.svg`,
       username,
-      password: hashedPassword
-    })
+      password: hashedPassword,
+    });
 
     const savedUser = await user.save();
 
@@ -61,7 +61,7 @@ Router.post("/login", async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ username })
+    const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(404).send({
@@ -78,8 +78,10 @@ Router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ username, email: user.email, id: user.id }, process.env.JWT_SECRET_KEY);
-
+    const token = jwt.sign(
+      { username, email: user.email, id: user.id },
+      process.env.JWT_SECRET_KEY
+    );
 
     return res.send({
       error: false,

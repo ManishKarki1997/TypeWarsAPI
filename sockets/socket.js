@@ -2,9 +2,9 @@ const { v4: uuidv4 } = require("uuid");
 const onlineUsers = {};
 const liveRooms = {};
 const countdownTimer = 3;
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 
-const textAPI = `http://metaphorpsum.com/paragraphs/3/6`
+const textAPI = `http://metaphorpsum.com/paragraphs/3/6`;
 
 const sockets = (io) => {
   io.on("connection", (socket) => {
@@ -32,8 +32,11 @@ const sockets = (io) => {
       io.to(data.challengedUser.socketId).emit("SOMEONE_CHALLEGED_YOU", data);
     });
 
-    socket.on("CHALLENGE_FOR_A_REMATCH", data => {
-      io.to(data.challengedUser.socketId).emit("SOMEONE_ASKED_FOR_A_REMATCH", data);
+    socket.on("CHALLENGE_FOR_A_REMATCH", (data) => {
+      io.to(data.challengedUser.socketId).emit(
+        "SOMEONE_ASKED_FOR_A_REMATCH",
+        data
+      );
     });
 
     socket.on("CHALLENGE_DECISION", (data) => {
@@ -46,22 +49,28 @@ const sockets = (io) => {
       // needed to notify opponent that this user has left the room
       onlineUsers[data.challenger.email] = {
         ...data.challenger,
-        roomId
-      }
+        roomId,
+      };
 
       onlineUsers[data.challengedUser.email] = {
         ...data.challengedUser,
-        roomId
-      }
+        roomId,
+      };
 
       liveRooms[roomId] = {
         ...data,
         roomId,
         readyPlayers: [],
-        finishedTypingPlayers: {}
+        finishedTypingPlayers: {},
       };
-      io.to(data.challengedUser.socketId).emit("GAME_IS_STARTING", { ...data, roomId });
-      io.to(data.challenger.socketId).emit("GAME_IS_STARTING", { ...data, roomId });
+      io.to(data.challengedUser.socketId).emit("GAME_IS_STARTING", {
+        ...data,
+        roomId,
+      });
+      io.to(data.challenger.socketId).emit("GAME_IS_STARTING", {
+        ...data,
+        roomId,
+      });
     });
 
     socket.on("PLAYER_READY", async (roomId) => {
@@ -79,20 +88,21 @@ const sockets = (io) => {
 
       io.to(roomId).emit("GAME_START_COUNTDOWN", {
         countdownTimer,
-        textToType
+        textToType,
       });
     });
 
     socket.on("MY_TYPING_DATA", (data) => {
-      io.to(data.intendedTo.socketId).emit("OPPONENT_TYPING_DATA", data)
-    })
+      io.to(data.intendedTo.socketId).emit("OPPONENT_TYPING_DATA", data);
+    });
 
     socket.on("TYPING_FINISHED", (data) => {
-      liveRooms[data.roomId].finishedTypingPlayers[data.user.email] = data.user
+      liveRooms[data.roomId].finishedTypingPlayers[data.user.email] = data.user;
 
-      if (Object.keys(liveRooms[data.roomId].finishedTypingPlayers).length == 2) {
-
-        const gameData = liveRooms[data.roomId].finishedTypingPlayers
+      if (
+        Object.keys(liveRooms[data.roomId].finishedTypingPlayers).length == 2
+      ) {
+        const gameData = liveRooms[data.roomId].finishedTypingPlayers;
         const playersArr = [];
         Object.keys(gameData).forEach((key) => playersArr.push(gameData[key]));
         const player1NetWPM =
@@ -103,24 +113,24 @@ const sockets = (io) => {
           Math.floor(playersArr[1].userTypedLength / 5) -
           Math.floor(playersArr[1].userTypedErrors);
 
-
         let winner;
 
         if (player1NetWPM == player2NetWPM) {
           winner = null;
         } else {
-          winner = player1NetWPM > player2NetWPM ? playersArr[0] : playersArr[1]
+          winner =
+            player1NetWPM > player2NetWPM ? playersArr[0] : playersArr[1];
         }
 
         io.to(data.roomId).emit("MATCH_FINISHED", {
           winner: winner,
-          gameDetails: liveRooms[data.roomId].finishedTypingPlayers
-        })
+          gameDetails: liveRooms[data.roomId].finishedTypingPlayers,
+        });
       }
-    })
+    });
 
     socket.on("disconnect", () => {
-      const user = onlineUsers[socket.email]
+      const user = onlineUsers[socket.email];
 
       if (user && user.roomId !== undefined) {
         io.to(user.roomId).emit("OPPONENT_LEFT_THE_GAME", user);
